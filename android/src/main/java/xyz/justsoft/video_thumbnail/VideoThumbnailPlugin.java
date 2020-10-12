@@ -1,6 +1,7 @@
 package xyz.justsoft.video_thumbnail;
 
 import android.content.ContentResolver;
+import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
@@ -15,6 +16,8 @@ import android.os.ParcelFileDescriptor;
 import android.provider.MediaStore;
 import android.util.Log;
 
+import androidx.annotation.NonNull;
+
 import java.io.FileInputStream;
 import java.io.FileDescriptor;
 import java.io.IOException;
@@ -25,6 +28,8 @@ import java.util.HashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import io.flutter.embedding.engine.plugins.FlutterPlugin;
+import io.flutter.plugin.common.BinaryMessenger;
 import io.flutter.plugin.common.MethodCall;
 import io.flutter.plugin.common.MethodChannel;
 import io.flutter.plugin.common.MethodChannel.MethodCallHandler;
@@ -34,9 +39,10 @@ import io.flutter.plugin.common.PluginRegistry.Registrar;
 /**
  * VideoThumbnailPlugin
  */
-public class VideoThumbnailPlugin implements MethodCallHandler {
+public class VideoThumbnailPlugin implements MethodCallHandler, FlutterPlugin {
     private static String TAG = "ThumbnailPlugin";
     private static final int HIGH_QUALITY_MIN_VAL = 70;
+    private Context context;
 
     private ExecutorService executor = Executors.newCachedThreadPool();
 
@@ -44,10 +50,15 @@ public class VideoThumbnailPlugin implements MethodCallHandler {
      * Plugin registration.
      */
     public static void registerWith(Registrar registrar) {
-        final MethodChannel channel = new MethodChannel(registrar.messenger(), "video_thumbnail");
-        channel.setMethodCallHandler(new VideoThumbnailPlugin());
+        final VideoThumbnailPlugin plugin = new VideoThumbnailPlugin();
+        plugin.context = registrar.context();
+        register(plugin, registrar.messenger());
     }
 
+    private static void register(final VideoThumbnailPlugin plugin, BinaryMessenger messenger) {
+        final MethodChannel channel = new MethodChannel(messenger, "video_thumbnail");
+        channel.setMethodCallHandler(plugin);
+    }
     @Override
     public void onMethodCall(MethodCall call, final Result result) {
         final Map<String, Object> args = call.arguments();
@@ -240,5 +251,16 @@ public class VideoThumbnailPlugin implements MethodCallHandler {
         }
 
         return bitmap;
+    }
+
+    @Override
+    public void onAttachedToEngine(@NonNull FlutterPluginBinding binding) {
+        context = binding.getApplicationContext();
+        register(this, binding.getBinaryMessenger());
+    }
+
+    @Override
+    public void onDetachedFromEngine(@NonNull FlutterPluginBinding binding) {
+
     }
 }
